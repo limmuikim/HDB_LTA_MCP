@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Layers,
   Train,
@@ -11,36 +11,86 @@ import {
   Clock,
   Sparkles,
   ArrowUpRight,
+  ArrowRight,
+  Filter,
+  RotateCcw,
+  MessageSquare,
+  Calculator,
+  ShieldCheck,
+  Check,
 } from 'lucide-react';
 import { HDBListing, TownHeatmapStat, TownName } from '../types/hdb';
 import { SINGAPORE_TOWNS } from '../data/townStats';
 import { MRT_SVG_LINES, KEY_MRT_STATIONS } from '../data/mrtStations';
-import { formatSGD } from '../utils/mortgageCalculations';
+import { formatSGD, calculateMonthlyInstallment } from '../utils/mortgageCalculations';
 import { MRT_LINE_CONFIG, getScoreColor } from '../utils/ltaScoring';
+import { FilterState } from './FilterBar';
 
 type HeatmapMode = 'transit' | 'price' | 'psf';
 
 interface InteractiveMapHeatmapProps {
-  listings: HDBListing[];
+  allListings: HDBListing[];
+  filteredListings: HDBListing[];
+  focusedListing?: HDBListing | null;
+  activeFilters: FilterState;
   onSelectListing: (listing: HDBListing) => void;
   onFilterByTown: (town: TownName) => void;
+  onResetFilters: () => void;
+  onOpenMortgage: (listing: HDBListing) => void;
+  onNavigateToChat: () => void;
 }
 
 export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
-  listings,
+  allListings,
+  filteredListings,
+  focusedListing,
+  activeFilters,
   onSelectListing,
   onFilterByTown,
+  onResetFilters,
+  onOpenMortgage,
+  onNavigateToChat,
 }) => {
   const [mode, setMode] = useState<HeatmapMode>('transit');
   const [showMRTLines, setShowMRTLines] = useState(true);
   const [showListingPins, setShowListingPins] = useState(true);
-  const [selectedTown, setSelectedTown] = useState<TownHeatmapStat | null>(SINGAPORE_TOWNS[0]); // default Bishan
-  const [selectedListingPin, setSelectedListingPin] = useState<HDBListing | null>(null);
+  const [filterPinsToQueryOnly, setFilterPinsToQueryOnly] = useState(true);
+  const [selectedTown, setSelectedTown] = useState<TownHeatmapStat | null>(() => {
+    if (focusedListing) {
+      return SINGAPORE_TOWNS.find((t) => t.town === focusedListing.town) || SINGAPORE_TOWNS[0];
+    }
+    return SINGAPORE_TOWNS[0]; // default Bishan
+  });
+  const [selectedListingPin, setSelectedListingPin] = useState<HDBListing | null>(focusedListing || null);
+
+  // Sync when focusedListing changes externally (e.g. user clicked "View on Transit Map" in card/modal/chat)
+  useEffect(() => {
+    if (focusedListing) {
+      setSelectedListingPin(focusedListing);
+      const matchedTown = SINGAPORE_TOWNS.find((t) => t.town === focusedListing.town);
+      if (matchedTown) {
+        setSelectedTown(matchedTown);
+      }
+    }
+  }, [focusedListing]);
+
+  // Determine active displayed pins
+  const displayedPins = filterPinsToQueryOnly ? filteredListings : allListings;
+
+  // Check if active filters or chat criteria are applied
+  const hasActiveQuery =
+    activeFilters.selectedTowns.length > 0 ||
+    activeFilters.selectedRegion !== 'All' ||
+    activeFilters.selectedFlatTypes.length > 0 ||
+    activeFilters.minPrice > 300000 ||
+    activeFilters.maxPrice < 1300000 ||
+    activeFilters.minTransitScore > 0 ||
+    activeFilters.maxWalkMinutes < 20 ||
+    activeFilters.searchQuery.trim().length > 0;
 
   // Helper to get town color fill based on active heatmap mode
   const getTownFillColor = (town: TownHeatmapStat) => {
     if (mode === 'transit') {
-      // Transit score (75 to 96)
       if (town.avgTransitScore >= 92) return '#059669'; // Emerald dark
       if (town.avgTransitScore >= 88) return '#10b981'; // Emerald
       if (town.avgTransitScore >= 84) return '#34d399'; // Mint
@@ -49,7 +99,6 @@ export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
     }
 
     if (mode === 'price') {
-      // Median price ($520k to $910k)
       if (town.medianPrice >= 850000) return '#e11d48'; // Rose deep
       if (town.medianPrice >= 750000) return '#f43f5e'; // Rose
       if (town.medianPrice >= 650000) return '#fb7185'; // Rose light
@@ -57,7 +106,7 @@ export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
       return '#ffe4e6'; // Soft pink
     }
 
-    // mode === 'psf' ($520 to $890 psf)
+    // mode === 'psf'
     if (town.medianPsf >= 800) return '#6366f1'; // Indigo
     if (town.medianPsf >= 700) return '#818cf8'; // Indigo light
     if (town.medianPsf >= 620) return '#a5b4fc'; // Periwinkle
@@ -67,6 +116,61 @@ export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Top Banner showing Active Search Query Linkage */}
+      {hasActiveQuery && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+              <Filter className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-emerald-950 flex items-center gap-2">
+                <span>Transit Map Linked to Active Search / Chat Query</span>
+                <span className="bg-emerald-600 text-white text-[10px] font-extrabold px-1.5 py-0.2 rounded-md">
+                  {filteredListings.length} Matching Flats
+                </span>
+              </div>
+              <div className="text-xs text-emerald-800 font-medium flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                {activeFilters.selectedTowns.length > 0 && (
+                  <span>Towns: {activeFilters.selectedTowns.join(', ')}</span>
+                )}
+                {activeFilters.selectedFlatTypes.length > 0 && (
+                  <span>· Type: {activeFilters.selectedFlatTypes.join(', ')}</span>
+                )}
+                {activeFilters.maxPrice < 1300000 && (
+                  <span>· Under {formatSGD(activeFilters.maxPrice)}</span>
+                )}
+                {activeFilters.minTransitScore > 0 && (
+                  <span>· Transit Score ≥ {activeFilters.minTransitScore}</span>
+                )}
+                {activeFilters.maxWalkMinutes < 20 && (
+                  <span>· Walk ≤ {activeFilters.maxWalkMinutes} min</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setFilterPinsToQueryOnly(!filterPinsToQueryOnly)}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-colors ${
+                filterPinsToQueryOnly
+                  ? 'bg-emerald-700 text-white border-emerald-700'
+                  : 'bg-white text-emerald-900 border-emerald-200 hover:bg-emerald-100'
+              }`}
+            >
+              {filterPinsToQueryOnly ? 'Showing Query Matches' : 'Showing All Flats'}
+            </button>
+            <button
+              onClick={onResetFilters}
+              className="text-xs text-emerald-800 hover:text-emerald-950 font-medium underline px-2 py-1"
+            >
+              Reset Filters
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Controls Header */}
       <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
         <div>
@@ -140,8 +244,17 @@ export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
                 onChange={(e) => setShowListingPins(e.target.checked)}
                 className="rounded text-slate-900 focus:ring-slate-900 w-3.5 h-3.5"
               />
-              <span>Listing Pins</span>
+              <span>Listing Pins ({displayedPins.length})</span>
             </label>
+
+            <button
+              onClick={onNavigateToChat}
+              className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold px-2.5 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors"
+              title="Chat with Advisor to derive custom search criteria"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Chat Finder</span>
+            </button>
           </div>
         </div>
       </div>
@@ -149,9 +262,9 @@ export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
       {/* Main Map Viewport & Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* SVG Interactive Map (3 columns on desktop) */}
-        <div className="lg:col-span-3 bg-slate-950 rounded-3xl p-4 sm:p-6 shadow-xl relative overflow-hidden border border-slate-800 flex flex-col justify-between min-h-[480px]">
+        <div className="lg:col-span-3 bg-slate-950 rounded-3xl p-4 sm:p-6 shadow-xl relative overflow-hidden border border-slate-800 flex flex-col justify-between min-h-[500px]">
           {/* Map Title / Active Legend in Top Corner */}
-          <div className="absolute top-4 left-4 z-10 bg-slate-900/80 backdrop-blur-md border border-slate-700 p-2.5 rounded-xl text-white max-w-xs pointer-events-none">
+          <div className="absolute top-4 left-4 z-10 bg-slate-900/85 backdrop-blur-md border border-slate-700 p-3 rounded-2xl text-white max-w-xs shadow-lg">
             <div className="text-xs font-bold flex items-center gap-1.5">
               {mode === 'transit' && <Train className="w-3.5 h-3.5 text-emerald-400" />}
               {mode === 'price' && <DollarSign className="w-3.5 h-3.5 text-rose-400" />}
@@ -181,6 +294,13 @@ export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
                 <span>{mode === 'transit' ? 'Exceptional (96)' : mode === 'price' ? '$910k+' : '$890+ psf'}</span>
               </div>
             </div>
+
+            {selectedListingPin && (
+              <div className="mt-2.5 pt-2 border-t border-slate-700/80 text-[11px] text-emerald-300 flex items-center justify-between">
+                <span>Focused: Blk {selectedListingPin.block} {selectedListingPin.streetName}</span>
+                <span className="font-bold">Score: {selectedListingPin.ltaTransit.score}</span>
+              </div>
+            )}
           </div>
 
           {/* Map Graphic Canvas */}
@@ -246,14 +366,18 @@ export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
                   <g
                     key={town.town}
                     transform={`translate(${town.mapCoords.x}, ${town.mapCoords.y})`}
-                    onClick={() => setSelectedTown(town)}
+                    onClick={() => {
+                      setSelectedTown(town);
+                      // Clear selected specific pin so town stats are in view
+                      setSelectedListingPin(null);
+                    }}
                     className="cursor-pointer group"
                   >
                     {/* Heat aura */}
                     <circle
-                      r={isSelected ? 6 : 4.5}
+                      r={isSelected ? 6.5 : 4.5}
                       fill={color}
-                      fillOpacity={isSelected ? 0.6 : 0.35}
+                      fillOpacity={isSelected ? 0.65 : 0.35}
                       className="transition-all duration-300"
                     />
                     {/* Inner core */}
@@ -281,7 +405,7 @@ export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
 
               {/* Listing Pins Layer */}
               {showListingPins &&
-                listings.map((item) => {
+                displayedPins.map((item) => {
                   const isPinSelected = selectedListingPin?.id === item.id;
                   const scoreColor = getScoreColor(item.ltaTransit.score);
                   return (
@@ -290,16 +414,26 @@ export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
                       transform={`translate(${item.coordinates.mapX}, ${item.coordinates.mapY})`}
                       onClick={() => {
                         setSelectedListingPin(item);
-                        onSelectListing(item);
+                        const matchedTown = SINGAPORE_TOWNS.find((t) => t.town === item.town);
+                        if (matchedTown) setSelectedTown(matchedTown);
                       }}
                       className="cursor-pointer"
                     >
+                      {/* Pulse aura when focused/selected */}
+                      {isPinSelected && (
+                        <circle
+                          r={4.2}
+                          fill={scoreColor.fillHex}
+                          fillOpacity={0.4}
+                          className="animate-ping"
+                        />
+                      )}
                       <circle
                         r={isPinSelected ? 2.8 : 1.8}
                         fill={scoreColor.fillHex}
                         stroke="#ffffff"
                         strokeWidth={isPinSelected ? 0.8 : 0.4}
-                        className="animate-pulse"
+                        className={isPinSelected ? '' : 'hover:scale-125 transition-transform'}
                       />
                     </g>
                   );
@@ -328,9 +462,105 @@ export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
           </div>
         </div>
 
-        {/* Selected Town Details & Stats Sidebar (1 column) */}
+        {/* Selected Listing OR Selected Town Details Sidebar (1 column) */}
         <div className="space-y-4">
-          {selectedTown ? (
+          {/* If a specific listing pin is selected/focused */}
+          {selectedListingPin ? (
+            <div className="bg-white rounded-3xl border border-slate-200 p-5 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  <span>Focused Flat on Map</span>
+                </span>
+                <button
+                  onClick={() => setSelectedListingPin(null)}
+                  className="text-xs text-slate-400 hover:text-slate-600 underline"
+                >
+                  View Town Stats
+                </button>
+              </div>
+
+              <div>
+                <h3 className="text-base font-bold text-slate-900 leading-snug line-clamp-2">
+                  {selectedListingPin.title}
+                </h3>
+                <div className="text-xs text-slate-500 font-medium mt-1">
+                  Blk {selectedListingPin.block} {selectedListingPin.streetName} · {selectedListingPin.town}
+                </div>
+              </div>
+
+              {/* Price & Transit Score Badge */}
+              <div className="flex items-baseline justify-between border-y border-slate-100 py-3">
+                <div>
+                  <div className="text-xl font-black text-slate-900 font-mono">
+                    {formatSGD(selectedListingPin.price)}
+                  </div>
+                  <div className="text-xs text-slate-500">${selectedListingPin.psf} psf · {selectedListingPin.floorAreaSqft} sqft</div>
+                </div>
+
+                <div
+                  className={`text-right px-3 py-1.5 rounded-xl border font-bold text-xs ${getScoreColor(selectedListingPin.ltaTransit.score).bg} ${getScoreColor(selectedListingPin.ltaTransit.score).text} ${getScoreColor(selectedListingPin.ltaTransit.score).border}`}
+                >
+                  <div className="text-base font-black leading-none">{selectedListingPin.ltaTransit.score}</div>
+                  <div className="text-[9px] uppercase font-bold opacity-80">Grade {selectedListingPin.ltaTransit.grade}</div>
+                </div>
+              </div>
+
+              {/* Transit Details */}
+              <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-slate-800">{selectedListingPin.ltaTransit.nearestMRT.name}</span>
+                  <span className="text-emerald-700 font-bold">{selectedListingPin.ltaTransit.nearestMRT.walkMinutes} min walk</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {selectedListingPin.ltaTransit.nearestMRT.lines.map((ln) => (
+                    <span
+                      key={ln}
+                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${MRT_LINE_CONFIG[ln].bg} ${MRT_LINE_CONFIG[ln].text}`}
+                    >
+                      {ln}
+                    </span>
+                  ))}
+                  <span className="text-slate-400 text-[10px] ml-1">
+                    {selectedListingPin.ltaTransit.shelteredWalkway}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-200/60">
+                  Door-to-door to Raffles Place CBD: <strong className="text-slate-800">{selectedListingPin.ltaTransit.travelTimeToRafflesPlaceMin} mins</strong>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-1">
+                <button
+                  onClick={() => onSelectListing(selectedListingPin)}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                >
+                  <span>Open Full Flat Details</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => onOpenMortgage(selectedListingPin)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs py-2 px-3 rounded-xl transition-colors flex items-center justify-center gap-1"
+                  >
+                    <Calculator className="w-3.5 h-3.5" />
+                    <span>Mortgage</span>
+                  </button>
+
+                  <button
+                    onClick={onNavigateToChat}
+                    className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs py-2 px-3 rounded-xl transition-colors flex items-center justify-center gap-1"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Chat Query</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : selectedTown ? (
+            /* Selected Town Details Card */
             <div className="bg-white rounded-3xl border border-slate-200 p-5 space-y-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <div>
@@ -381,14 +611,22 @@ export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
                 </div>
               </div>
 
-              {/* Action Button: Filter by this Town */}
-              <div className="pt-2">
+              {/* Action Buttons: Filter Listings / Ask in Chat */}
+              <div className="space-y-2 pt-1">
                 <button
                   onClick={() => onFilterByTown(selectedTown.town)}
                   className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-xs"
                 >
                   <span>Filter Listings for {selectedTown.town}</span>
                   <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={onNavigateToChat}
+                  className="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs py-2 px-4 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Ask Advisor About {selectedTown.town}</span>
                 </button>
               </div>
             </div>
@@ -415,9 +653,12 @@ export const InteractiveMapHeatmap: React.FC<InteractiveMapHeatmapProps> = ({
                 .map((t, idx) => (
                   <div
                     key={t.town}
-                    onClick={() => setSelectedTown(t)}
+                    onClick={() => {
+                      setSelectedTown(t);
+                      setSelectedListingPin(null);
+                    }}
                     className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-colors ${
-                      selectedTown?.town === t.town
+                      selectedTown?.town === t.town && !selectedListingPin
                         ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
                         : 'hover:bg-slate-50 text-slate-700'
                     }`}

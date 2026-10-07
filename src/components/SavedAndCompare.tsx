@@ -10,6 +10,7 @@ import {
   Layers,
   Sparkles,
   ExternalLink,
+  Compass,
 } from 'lucide-react';
 import { HDBListing } from '../types/hdb';
 import { formatSGD, calculateMonthlyInstallment } from '../utils/mortgageCalculations';
@@ -22,6 +23,7 @@ interface SavedAndCompareProps {
   onToggleCompare: (listing: HDBListing) => void;
   onSelectListing: (listing: HDBListing) => void;
   onOpenMortgage: (listing: HDBListing) => void;
+  onLocateOnMap?: (listing: HDBListing) => void;
   savedNotes: Record<string, string>;
   onSaveNote: (listingId: string, note: string) => void;
   onClearAllSaved: () => void;
@@ -35,6 +37,7 @@ export const SavedAndCompare: React.FC<SavedAndCompareProps> = ({
   onToggleCompare,
   onSelectListing,
   onOpenMortgage,
+  onLocateOnMap,
   savedNotes,
   onSaveNote,
   onClearAllSaved,
@@ -208,9 +211,17 @@ export const SavedAndCompare: React.FC<SavedAndCompareProps> = ({
                           >
                             Details
                           </button>
+                          {onLocateOnMap && (
+                            <button
+                              onClick={() => onLocateOnMap(flat)}
+                              className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline"
+                            >
+                              Map
+                            </button>
+                          )}
                           <button
                             onClick={() => onOpenMortgage(flat)}
-                            className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline"
+                            className="text-xs font-semibold text-slate-600 hover:text-slate-900 underline"
                           >
                             Mortgage
                           </button>
@@ -293,13 +304,25 @@ export const SavedAndCompare: React.FC<SavedAndCompareProps> = ({
 
                     {/* Bottom action bar */}
                     <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                      <button
-                        onClick={() => onOpenMortgage(flat)}
-                        className="text-xs font-semibold text-slate-700 hover:text-slate-900 flex items-center gap-1"
-                      >
-                        <Calculator className="w-3.5 h-3.5" />
-                        <span>Mortgage</span>
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        {onLocateOnMap && (
+                          <button
+                            onClick={() => onLocateOnMap(flat)}
+                            className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 p-1 hover:bg-emerald-50 rounded-lg transition-colors"
+                            title="Locate on Transit Map"
+                          >
+                            <Compass className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Map</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => onOpenMortgage(flat)}
+                          className="text-xs font-semibold text-slate-700 hover:text-slate-900 flex items-center gap-1 p-1 hover:bg-slate-200/60 rounded-lg transition-colors"
+                        >
+                          <Calculator className="w-3.5 h-3.5" />
+                          <span>Mortgage</span>
+                        </button>
+                      </div>
 
                       <button
                         onClick={() => onSelectListing(flat)}

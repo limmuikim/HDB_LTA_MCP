@@ -49,9 +49,12 @@ interface ConversationalAdvisorProps {
   setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
   onSelectListing: (listing: HDBListing) => void;
   onOpenMortgage: (listing: HDBListing) => void;
+  onLocateOnMap: (listing: HDBListing) => void;
+  onExploreMapWithFilters: (derived: DerivedCriteria) => void;
   savedListingIds: string[];
   onToggleSave: (listing: HDBListing) => void;
   onNavigateToListings: () => void;
+  onNavigateToMap: () => void;
 }
 
 const STARTER_PROMPTS = [
@@ -68,9 +71,12 @@ export const ConversationalAdvisor: React.FC<ConversationalAdvisorProps> = ({
   setFilters,
   onSelectListing,
   onOpenMortgage,
+  onLocateOnMap,
+  onExploreMapWithFilters,
   savedListingIds,
   onToggleSave,
   onNavigateToListings,
+  onNavigateToMap,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
@@ -360,6 +366,15 @@ export const ConversationalAdvisor: React.FC<ConversationalAdvisorProps> = ({
 
         <div className="flex items-center gap-2">
           <button
+            onClick={onNavigateToMap}
+            className="text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 font-semibold px-3 py-2 rounded-xl border border-emerald-200 transition-colors flex items-center gap-1.5"
+            title="View current Singapore Transit Map & Heatmap"
+          >
+            <Compass className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Transit Map</span>
+          </button>
+
+          <button
             onClick={handleResetChat}
             className="text-xs text-slate-500 hover:text-slate-800 font-semibold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors flex items-center gap-1.5"
             title="Start fresh conversation"
@@ -414,18 +429,28 @@ export const ConversationalAdvisor: React.FC<ConversationalAdvisorProps> = ({
                   {/* Derived Criteria Card */}
                   {msg.derivedCriteria && Object.keys(msg.derivedCriteria).length > 0 && (
                     <div className="mt-4 pt-3 border-t border-slate-200 bg-white rounded-2xl p-3.5 text-slate-900 shadow-2xs space-y-2">
-                      <div className="flex items-center justify-between text-xs">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                         <span className="font-bold flex items-center gap-1.5 text-emerald-800">
                           <Filter className="w-3.5 h-3.5 text-emerald-600" />
                           <span>Derived Search Criteria</span>
                         </span>
-                        <button
-                          onClick={() => handleApplyDerivedFilters(msg.derivedCriteria!)}
-                          className="bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 shadow-2xs"
-                        >
-                          <Check className="w-3 h-3" />
-                          <span>Apply to Marketplace</span>
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => onExploreMapWithFilters(msg.derivedCriteria!)}
+                            className="bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 text-[11px] font-bold px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 shadow-2xs"
+                            title="View matching areas and rail lines on the Transit Map"
+                          >
+                            <Compass className="w-3 h-3 text-emerald-600" />
+                            <span>Explore on Transit Map</span>
+                          </button>
+                          <button
+                            onClick={() => handleApplyDerivedFilters(msg.derivedCriteria!)}
+                            className="bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 shadow-2xs"
+                          >
+                            <Check className="w-3 h-3" />
+                            <span>Apply to Marketplace</span>
+                          </button>
+                        </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 font-medium">
@@ -525,18 +550,28 @@ export const ConversationalAdvisor: React.FC<ConversationalAdvisorProps> = ({
                             </div>
 
                             <div className="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
-                              <button
-                                onClick={() => onOpenMortgage(flat)}
-                                className="text-slate-600 hover:text-slate-900 text-[11px] font-semibold flex items-center gap-1"
-                              >
-                                <Calculator className="w-3 h-3" />
-                                <span>Mortgage</span>
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => onLocateOnMap(flat)}
+                                  className="text-emerald-700 hover:text-emerald-900 text-[11px] font-semibold flex items-center gap-1 p-1 hover:bg-emerald-50 rounded-lg transition-colors"
+                                  title="Locate flat and rail lines on Transit Map"
+                                >
+                                  <Compass className="w-3 h-3 text-emerald-600" />
+                                  <span>Map</span>
+                                </button>
+                                <button
+                                  onClick={() => onOpenMortgage(flat)}
+                                  className="text-slate-600 hover:text-slate-900 text-[11px] font-semibold flex items-center gap-1 p-1 hover:bg-slate-200/60 rounded-lg transition-colors"
+                                >
+                                  <Calculator className="w-3 h-3" />
+                                  <span>Calc</span>
+                                </button>
+                              </div>
                               <button
                                 onClick={() => onSelectListing(flat)}
                                 className="bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1"
                               >
-                                <span>View Details</span>
+                                <span>Details</span>
                                 <ArrowRight className="w-3 h-3" />
                               </button>
                             </div>

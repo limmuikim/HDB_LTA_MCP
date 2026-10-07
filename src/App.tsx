@@ -20,6 +20,7 @@ export default function App() {
   const [listings] = useState<HDBListing[]>(INITIAL_HDB_LISTINGS);
   const [selectedListing, setSelectedListing] = useState<HDBListing | null>(null);
   const [mortgagePrefilledListing, setMortgagePrefilledListing] = useState<HDBListing | null>(null);
+  const [focusedMapListing, setFocusedMapListing] = useState<HDBListing | null>(null);
   const [isTransitExplainerOpen, setIsTransitExplainerOpen] = useState(false);
   const [quickChatInput, setQuickChatInput] = useState('');
 
@@ -264,6 +265,23 @@ export default function App() {
     setActiveTab('mortgage');
   };
 
+  const handleLocateOnMap = (listing: HDBListing) => {
+    setFocusedMapListing(listing);
+    setActiveTab('map');
+  };
+
+  const handleExploreMapWithFilters = (derived: any) => {
+    setFilters((prev) => ({
+      ...prev,
+      selectedTowns: derived.towns && derived.towns.length > 0 ? derived.towns : prev.selectedTowns,
+      selectedFlatTypes: derived.flatTypes && derived.flatTypes.length > 0 ? derived.flatTypes : prev.selectedFlatTypes,
+      maxPrice: derived.maxPrice || prev.maxPrice,
+      minTransitScore: derived.minTransitScore || prev.minTransitScore,
+      maxWalkMinutes: derived.maxWalkMinutes || prev.maxWalkMinutes,
+    }));
+    setActiveTab('map');
+  };
+
   const handleFilterByTown = (town: TownName) => {
     setFilters((prev) => ({
       ...prev,
@@ -479,6 +497,7 @@ export default function App() {
                       onToggleCompare={handleToggleCompare}
                       onSelectListing={setSelectedListing}
                       onOpenMortgage={handleOpenMortgage}
+                      onLocateOnMap={handleLocateOnMap}
                     />
                   ))}
                 </div>
@@ -494,17 +513,39 @@ export default function App() {
             setFilters={setFilters}
             onSelectListing={setSelectedListing}
             onOpenMortgage={handleOpenMortgage}
+            onLocateOnMap={handleLocateOnMap}
+            onExploreMapWithFilters={handleExploreMapWithFilters}
             savedListingIds={savedListingIds}
             onToggleSave={handleToggleSave}
             onNavigateToListings={() => setActiveTab('listings')}
+            onNavigateToMap={() => setActiveTab('map')}
           />
         )}
 
         {activeTab === 'map' && (
           <InteractiveMapHeatmap
-            listings={listings}
+            allListings={listings}
+            filteredListings={filteredListings}
+            focusedListing={focusedMapListing}
+            activeFilters={filters}
             onSelectListing={setSelectedListing}
             onFilterByTown={handleFilterByTown}
+            onResetFilters={() =>
+              setFilters({
+                searchQuery: '',
+                selectedTowns: [],
+                selectedRegion: 'All',
+                selectedFlatTypes: [],
+                minPrice: 300000,
+                maxPrice: 1300000,
+                minTransitScore: 0,
+                maxWalkMinutes: 20,
+                minRemainingLease: 0,
+                sortBy: 'transitScore',
+              })
+            }
+            onOpenMortgage={handleOpenMortgage}
+            onNavigateToChat={() => setActiveTab('chat')}
           />
         )}
 
@@ -527,6 +568,7 @@ export default function App() {
             onToggleCompare={handleToggleCompare}
             onSelectListing={setSelectedListing}
             onOpenMortgage={handleOpenMortgage}
+            onLocateOnMap={handleLocateOnMap}
             savedNotes={savedNotes}
             onSaveNote={handleSaveNote}
             onClearAllSaved={() => setSavedListingIds([])}
@@ -556,6 +598,7 @@ export default function App() {
         isSaved={selectedListing ? savedListingIds.includes(selectedListing.id) : false}
         onToggleSave={handleToggleSave}
         onOpenMortgage={handleOpenMortgage}
+        onLocateOnMap={handleLocateOnMap}
         savedNotes={savedNotes}
         onSaveNote={handleSaveNote}
       />

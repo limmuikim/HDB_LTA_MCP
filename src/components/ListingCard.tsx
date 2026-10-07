@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   Calculator,
   Layers,
+  Compass,
 } from 'lucide-react';
 import { HDBListing } from '../types/hdb';
 import { formatSGD, calculateMonthlyInstallment } from '../utils/mortgageCalculations';
@@ -20,6 +21,7 @@ interface ListingCardProps {
   onToggleCompare: (listing: HDBListing) => void;
   onSelectListing: (listing: HDBListing) => void;
   onOpenMortgage: (listing: HDBListing) => void;
+  onLocateOnMap?: (listing: HDBListing) => void;
 }
 
 export const ListingCard: React.FC<ListingCardProps> = ({
@@ -30,6 +32,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   onToggleCompare,
   onSelectListing,
   onOpenMortgage,
+  onLocateOnMap,
 }) => {
   const { ltaTransit } = listing;
   const scoreColors = getScoreColor(ltaTransit.score);
@@ -177,6 +180,17 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           </label>
 
           <div className="flex items-center gap-1.5">
+            {onLocateOnMap && (
+              <button
+                onClick={() => onLocateOnMap(listing)}
+                className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded-lg transition-colors text-xs flex items-center gap-1"
+                title="Locate flat and transit lines on Transit Map"
+              >
+                <Compass className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="hidden sm:inline">Map</span>
+              </button>
+            )}
+
             <button
               onClick={() => onOpenMortgage(listing)}
               className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors text-xs flex items-center gap-1"

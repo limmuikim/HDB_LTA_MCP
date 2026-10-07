@@ -26,6 +26,7 @@ interface ListingDetailModalProps {
   isSaved: boolean;
   onToggleSave: (listing: HDBListing) => void;
   onOpenMortgage: (listing: HDBListing) => void;
+  onLocateOnMap?: (listing: HDBListing) => void;
   savedNotes: Record<string, string>;
   onSaveNote: (listingId: string, note: string) => void;
 }
@@ -36,6 +37,7 @@ export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
   isSaved,
   onToggleSave,
   onOpenMortgage,
+  onLocateOnMap,
   savedNotes,
   onSaveNote,
 }) => {
@@ -245,9 +247,23 @@ export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
             {/* Commute Times & Nearby Stations */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
               <div className="bg-white p-3 rounded-xl border border-slate-100 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                  <Train className="w-4 h-4 text-emerald-600" />
-                  <span>Station Accessibility</span>
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                  <div className="flex items-center gap-1.5">
+                    <Train className="w-4 h-4 text-emerald-600" />
+                    <span>Station Accessibility</span>
+                  </div>
+                  {onLocateOnMap && (
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onLocateOnMap(listing);
+                      }}
+                      className="text-emerald-700 hover:text-emerald-900 font-semibold text-[11px] flex items-center gap-1"
+                    >
+                      <Compass className="w-3.5 h-3.5" />
+                      <span>View on Rail Map</span>
+                    </button>
+                  )}
                 </div>
                 <div className="text-xs space-y-1.5 text-slate-600">
                   <div className="flex items-center justify-between">
@@ -426,6 +442,19 @@ export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {onLocateOnMap && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onLocateOnMap(listing);
+                }}
+                className="px-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-emerald-800 transition-colors flex items-center gap-1.5"
+                title="Locate this unit on the Singapore Transit Map"
+              >
+                <Compass className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Transit Map</span>
+              </button>
+            )}
             <button
               onClick={() => onOpenMortgage(listing)}
               className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 transition-colors flex items-center gap-1.5"
