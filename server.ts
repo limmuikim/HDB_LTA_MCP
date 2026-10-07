@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import healthHandler from './api/health.js';
+import healthHandler from './api/health.ts';
 import hdbHandler from './api/hdb.ts';
 import busArrivalHandler from './api/bus-arrival.js';
 
