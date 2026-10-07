@@ -8,11 +8,12 @@ import {
   TrendingUp,
   SlidersHorizontal,
   Info,
+  Sparkles,
 } from 'lucide-react';
 
 interface NavbarProps {
-  activeTab: 'listings' | 'map' | 'trends' | 'mortgage' | 'saved' | 'alerts';
-  setActiveTab: (tab: 'listings' | 'map' | 'trends' | 'mortgage' | 'saved' | 'alerts') => void;
+  activeTab: 'listings' | 'chat' | 'map' | 'trends' | 'mortgage' | 'saved' | 'alerts';
+  setActiveTab: (tab: 'listings' | 'chat' | 'map' | 'trends' | 'mortgage' | 'saved' | 'alerts') => void;
   savedCount: number;
   unreadAlertCount: number;
   onOpenTransitExplainer: () => void;
@@ -55,6 +56,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Navigation Controls */}
           <nav className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-sm font-medium">
             <button
+              onClick={() => setActiveTab('chat')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                activeTab === 'chat'
+                  ? 'bg-slate-900 text-white shadow-xs font-semibold'
+                  : 'text-emerald-800 bg-emerald-100/60 hover:bg-emerald-100 font-semibold'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Chat Advisor</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('listings')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
                 activeTab === 'listings'
@@ -75,7 +88,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Compass className="w-4 h-4" />
-              <span className="hidden md:inline">Transit Map & Heatmap</span>
+              <span className="hidden md:inline">Transit Map</span>
               <span className="md:hidden">Map</span>
             </button>
 
@@ -88,8 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <TrendingUp className="w-4 h-4" />
-              <span className="hidden md:inline">Price Trends</span>
-              <span className="md:hidden">Trends</span>
+              <span className="hidden md:inline">Trends</span>
             </button>
 
             <button
@@ -104,6 +116,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden md:inline">Mortgage</span>
             </button>
           </nav>
+
 
           {/* Right Action Icons: Saved & Alerts */}
           <div className="flex items-center gap-2">

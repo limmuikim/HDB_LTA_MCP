@@ -9,17 +9,19 @@ import { MortgageCalculator } from './components/MortgageCalculator';
 import { SavedAndCompare } from './components/SavedAndCompare';
 import { AlertsManager } from './components/AlertsManager';
 import { TransitScoreExplainerModal } from './components/TransitScoreExplainerModal';
+import { ConversationalAdvisor } from './components/ConversationalAdvisor';
 
 import { INITIAL_HDB_LISTINGS } from './data/hdbListings';
 import { CustomAlertRule, HDBListing, InAppNotification, TownName } from './types/hdb';
-import { Train, Info, Sparkles, Filter } from 'lucide-react';
+import { Train, Info, Sparkles, Filter, MessageSquare, ArrowRight } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'listings' | 'map' | 'trends' | 'mortgage' | 'saved' | 'alerts'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'chat' | 'map' | 'trends' | 'mortgage' | 'saved' | 'alerts'>('listings');
   const [listings] = useState<HDBListing[]>(INITIAL_HDB_LISTINGS);
   const [selectedListing, setSelectedListing] = useState<HDBListing | null>(null);
   const [mortgagePrefilledListing, setMortgagePrefilledListing] = useState<HDBListing | null>(null);
   const [isTransitExplainerOpen, setIsTransitExplainerOpen] = useState(false);
+  const [quickChatInput, setQuickChatInput] = useState('');
 
   // Saved Listings & Comparison State (with LocalStorage)
   const [savedListingIds, setSavedListingIds] = useState<string[]>(() => {
@@ -379,14 +381,64 @@ export default function App() {
                   </p>
                 </div>
 
-                <button
-                  onClick={() => setIsTransitExplainerOpen(true)}
-                  className="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-white/15 transition-colors self-start md:self-auto shrink-0 flex items-center gap-2"
-                >
-                  <Train className="w-4 h-4 text-emerald-400" />
-                  <span>How Scores Work</span>
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setActiveTab('chat')}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2 shadow-sm"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Chat to Find</span>
+                  </button>
+                  <button
+                    onClick={() => setIsTransitExplainerOpen(true)}
+                    className="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-white/15 transition-colors flex items-center gap-1.5"
+                  >
+                    <Train className="w-4 h-4 text-emerald-400" />
+                    <span>Guide</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Conversational Input Banner: Chat to derive what they are looking for */}
+              <div className="mb-6 bg-white border border-emerald-200/80 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <span>Not sure which filters to set?</span>
+                      <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">Conversational Advisor</span>
+                    </div>
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (quickChatInput.trim()) {
+                          setActiveTab('chat');
+                        }
+                      }}
+                      className="mt-1 flex items-center gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={quickChatInput}
+                        onChange={(e) => setQuickChatInput(e.target.value)}
+                        placeholder="Key in what you're looking for (e.g. '4-room flat near MRT in Bishan under 850k')..."
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 focus:bg-white"
+                      />
+                      <button
+                        type="submit"
+                        onClick={() => setActiveTab('chat')}
+                        className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-3 py-1.5 rounded-xl whitespace-nowrap flex items-center gap-1 shadow-2xs"
+                      >
+                        <span>Chat & Derive</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
 
               {filteredListings.length === 0 ? (
                 <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-md mx-auto space-y-3 shadow-xs">
@@ -433,6 +485,19 @@ export default function App() {
               )}
             </div>
           </div>
+        )}
+
+        {activeTab === 'chat' && (
+          <ConversationalAdvisor
+            listings={listings}
+            filters={filters}
+            setFilters={setFilters}
+            onSelectListing={setSelectedListing}
+            onOpenMortgage={handleOpenMortgage}
+            savedListingIds={savedListingIds}
+            onToggleSave={handleToggleSave}
+            onNavigateToListings={() => setActiveTab('listings')}
+          />
         )}
 
         {activeTab === 'map' && (
