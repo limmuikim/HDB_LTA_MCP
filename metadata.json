@@ -1,0 +1,6 @@
+{
+  "name": "TransitHDB - Singapore Housing & LTA Transit Navigator",
+  "description": "Singapore HDB resale flat search platform with LTA public transport accessibility scoring, custom listing alerts, mortgage affordability engine, and interactive price trend heatmaps.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
