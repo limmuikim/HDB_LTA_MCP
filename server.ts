@@ -1,8 +1,9 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import healthHandler from './api/health.ts';
+import healthHandler from './api/health.js';
 import hdbHandler from './api/hdb.ts';
+import busArrivalHandler from './api/bus-arrival.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +21,14 @@ async function startServer() {
 
   app.all('/api/hdb', (req, res) => {
     return hdbHandler(req, res);
+  });
+
+  app.all('/api/bus-arrival', (req, res) => {
+    return busArrivalHandler(req, res);
+  });
+
+  app.all('/api/bus', (req, res) => {
+    return busArrivalHandler(req, res);
   });
 
   // In production, serve static built files
